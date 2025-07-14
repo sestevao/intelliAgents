@@ -1,4 +1,5 @@
 import { useRoomQuestions } from '@/http/use-room-questions'
+import type { Question } from '@/http/types/get-room-questions-response'
 import { QuestionItem } from './question-item'
 
 interface QuestionListProps {
@@ -16,7 +17,7 @@ export function QuestionList(props: QuestionListProps) {
         </h2>
       </div>
 
-      {data?.map((question) => {
+      {data?.questions?.map((question: Question) => {
         return <QuestionItem key={question.id} question={question} />
       })}
     </div>

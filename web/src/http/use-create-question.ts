@@ -27,18 +27,21 @@ export function useCreateQuestion(roomId: string) {
     onSuccess(data, variables) {
       queryClient.setQueryData<GetRoomQuestionsResponse>(
         ['get-questions', roomId],
-        (questions) => {
-          const questionsArray = questions ?? []
+        (prevData) => {
+          const questions = prevData?.questions ?? []
 
           const newQuestion = {
             id: data.questionId,
             question: variables.question,
-            answer: data.answer,
+            answer: null,
+            roomId,
             createdAt: new Date().toISOString(),
-            isGeneratingAnswer: false,
+            isGeneratingAnswer: false
           }
 
-          return [newQuestion, ...questionsArray]
+          return {
+            questions: [newQuestion, ...questions]
+          }
         }
       )
     },
