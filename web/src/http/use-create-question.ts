@@ -20,6 +20,7 @@ export function useCreateQuestion(roomId: string) {
       )
 
       const result: CreateQuestionResponse = await response.json()
+      console.log('Create question response:', result)
 
       return result
     },
@@ -33,7 +34,7 @@ export function useCreateQuestion(roomId: string) {
           const newQuestion = {
             id: data.questionId,
             question: variables.question,
-            answer: null,
+            answer: data.answer,
             roomId,
             createdAt: new Date().toISOString(),
             isGeneratingAnswer: false
@@ -47,7 +48,7 @@ export function useCreateQuestion(roomId: string) {
     },
 
     // onSuccess: () => {
-    //   queryClient.invalidateQueries({ queryKey: ['get-questions', roomId] })
+      // queryClient.invalidateQueries({ queryKey: ['get-questions', roomId] })
     // },
   })
 }

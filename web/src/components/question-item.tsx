@@ -54,9 +54,48 @@ export function QuestionItem({ question }: QuestionItemProps) {
                       </span>
                     </div>
                   ) : (
-                    <p className="whitespace-pre-line text-sm leading-relaxed">
-                      {question.answer}
-                    </p>
+                    <div className="space-y-4 text-sm leading-relaxed">
+                      {question.answer?.split('\n\n').map((section, index) => {
+                        if (section.startsWith('RESPOSTA:')) {
+                          return (
+                            <div key={index} className="text-foreground">
+                              <p className="font-medium mb-2">Resposta:</p>
+                              <p className="whitespace-pre-line">
+                                {section.replace('RESPOSTA:', '').trim()}
+                              </p>
+                            </div>
+                          )
+                        }
+
+                        if (section.startsWith('TRECHOS RELEVANTES:')) {
+                          return (
+                            <div key={index} className="text-muted-foreground bg-muted/30 p-3 rounded-md">
+                              <p className="font-medium mb-2">Trechos Relevantes:</p>
+                              <p className="whitespace-pre-line italic">
+                                {section.replace('TRECHOS RELEVANTES:', '').trim()}
+                              </p>
+                            </div>
+                          )
+                        }
+
+                        if (section.startsWith('OBSERVAÇÕES ADICIONAIS:')) {
+                          return (
+                            <div key={index} className="text-muted-foreground text-xs">
+                              <p className="font-medium mb-1">Observações:</p>
+                              <p className="whitespace-pre-line">
+                                {section.replace('OBSERVAÇÕES ADICIONAIS:', '').trim()}
+                              </p>
+                            </div>
+                          )
+                        }
+
+                        return (
+                          <p key={index} className="whitespace-pre-line">
+                            {section}
+                          </p>
+                        )
+                      })}
+                    </div>
                   )}
                 </div>
               </div>

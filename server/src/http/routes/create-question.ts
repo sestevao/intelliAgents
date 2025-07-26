@@ -45,11 +45,21 @@ export const createQuestionRoute: FastifyPluginCallbackZod = (app) => {
         .limit(3)
 
       let answer: string | null = null
-
+      console.log('Found chunks:', chunks.length)
+      console.log('Chunks:', chunks.map(c => c.transcription))
       if (chunks.length > 0) {
         const transcriptions = chunks.map((chunk) => chunk.transcription)
+        console.log('Transcriptions:', transcriptions)
 
-        answer = await generateAnswer(question, transcriptions)
+        try{
+          answer = await generateAnswer(question, transcriptions)
+          console.log('Generated answer:', answer)
+        } catch (error) {
+          console.error('Error generating answer:', error)
+          answer = null
+        }
+      } else {
+        console.log('No matching chunks found for the question embeddings')
       }
 
       const result = await db

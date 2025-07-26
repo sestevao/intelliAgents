@@ -12,7 +12,7 @@ export async function transcribeAudio(audioAsBase64: string, mimeType: string) {
     model,
     contents: [
       {
-        text: 'Transcreva o áudio para português do Brasil. Seja preciso e natural na transcrição. Mantenha a pontuação adequada e divida o texto em parágrafos quando for apropriado.',
+        text: 'Transcribe the audio into Brazilian Portuguese. Be accurate and natural in your transcription. Maintain proper punctuation and divide the text into paragraphs where appropriate.',
       },
       {
         inlineData: {
@@ -24,7 +24,7 @@ export async function transcribeAudio(audioAsBase64: string, mimeType: string) {
   })
 
   if (!response.text) {
-    throw new Error('Não foi possível converter o áudio')
+    throw new Error('Unable to convert audio')
   }
 
   return response.text
@@ -40,7 +40,7 @@ export async function generateEmbeddings(text: string) {
   })
 
   if (!response.embeddings?.[0].values) {
-    throw new Error('Não foi possível gerar os embeddings.')
+    throw new Error('Unable to generate embeddings.')
   }
 
   return response.embeddings[0].values
@@ -51,37 +51,104 @@ export async function generateAnswer(
   transcriptions: string[]
 ) {
   const context = transcriptions.join('\n\n')
+  console.log('Prompt sent to Gemini:', prompt)
 
   const prompt = `
-    Com base no texto fornecido abaixo como contexto, responda a pergunta de forma clara e precisa em português do Brasil.
+    You are an educational assistant specializing in analyzing lesson content and answering questions.
+    Using the text provided below as context, answer the question clearly and precisely in Brazilian Portuguese.
 
-    CONTEXTO:
+    CLASS CONTEXT:
     ${context}
 
-    PERGUNTA:
+    STUDENT QUESTION:
     ${question}
 
-    INSTRUÇÕES:
-    - Use apenas informações contidas no contexto enviado;
-    - Se a resposta não for encontrada no contexto, apenas responda que não possui informações suficientes para responder;
-    - Seja objetivo;
-    - Mantenha um tom educativo e profissional;
-    - Cite trechos relevantes do contexto se apropriado;
-    - Se for citar o contexto, utilize o temo "conteúdo da aula";
+    IMPORTANT INSTRUCTIONS:
+    1. Carefully analyze the context and the question.
+    2. Use EXCLUSIVELY information contained in the context provided.
+    3. If the information is not explicit in the context, respond: "Based on the available lecture content, there is insufficient information to answer this question."
+    4. When citing information from the context, always use the term "lecture content."
+    5. Structure your response in the following format:
+
+      ANSWER:
+      [Your main answer here, objective and direct]
+
+      RELEVANT EXCERPTS:
+      [If applicable, cite specific excerpts from the lesson content that support your answer]
+
+      ADDITIONAL NOTES:
+      [If necessary, include notes about important limitations or clarifications]
+
+    6. Keep your answers:
+      - Objective and direct
+      - In clear, professional language
+      - Well-structured and easy to understand
+      - With relevant context quotes when appropriate
+
+    7. Avoid:
+      - Adding extraneous information to the context
+      - Making assumptions beyond the provided content
+      - Using complex or unnecessary technical language
   `.trim()
 
-  const response = await gemini.models.generateContent({
-    model,
-    contents: [
-      {
-        text: prompt,
-      },
-    ],
-  })
+  // Maximum retries for API calls
+  const MAX_RETRIES = 3;
+  let retryCount = 0;
+  let lastError = null;
 
-  if (!response.text) {
-    throw new Error('Falha ao gerar resposta pelo Gemini')
+  while (retryCount < MAX_RETRIES) {
+    try {
+      const response = await gemini.models.generateContent({
+        model,
+        contents: [{ text: prompt }],
+        generationConfig: {
+          temperature: 0.7,
+          topK: 40,
+          topP: 0.95,
+          maxOutputTokens: 1024,
+          stopSequences: ["ADDITIONAL OBSERVATIONS:"], // Ensure structured response
+        },
+        safetySettings: [
+          {
+            category: 'HARM_CATEGORY_HARASSMENT',
+            threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+          },
+          {
+            category: 'HARM_CATEGORY_HATE_SPEECH',
+            threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+          },
+          {
+            category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+            threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+          },
+          {
+            category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+            threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+          },
+        ],
+      })
+
+      console.log('Gemini response:', response)
+      if (!response.text) {
+        throw new Error('Gemini\'s response is empty')
+      }
+
+      return response.text
+      .replace(/\n{3,}/g, '\n\n') // Remove excess newlines
+      .trim()
+
+    } catch (error) {
+      lastError = error
+      retryCount++
+
+      // Wait before retrying (exponential backoff)
+      if (retryCount < MAX_RETRIES) {
+        await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000))
+        console.error(`Attempt ${retryCount} failed. Retrying...`)
+      }
+    }
   }
 
-  return response.text
+  // If all retries failed, throw the last error
+  throw new Error(`Failed to generate response from Gemini after ${MAX_RETRIES} attempts. Last error: ${lastError?.message || 'Unknown error'}`)
 }
