@@ -15,35 +15,58 @@ export const uploadAudioRoute: FastifyPluginCallbackZod = (app) => {
       },
     },
     async (request, reply) => {
-      const { roomId } = request.params
-      const audio = await request.file()
+      try {
+        const { roomId } = request.params
+        const audio = await request.file()
 
-      if (!audio) {
-        throw new Error('Audio is required.')
-      }
+        if (!audio) {
+          return reply.status(400).send({ error: 'Audio file is required.' })
+        }
 
-      const audioBuffer = await audio.toBuffer()
-      const audioAsBase64 = audioBuffer.toString('base64')
-
-      const transcription = await transcribeAudio(audioAsBase64, audio.mimetype)
-      const embeddings = await generateEmbeddings(transcription)
-
-      const result = await db
-        .insert(schema.audioChunks)
-        .values({
-          roomId,
-          transcription,
-          embeddings,
+        console.log('Processing audio file:', {
+          filename: audio.filename,
+          mimetype: audio.mimetype,
+          size: audio.file.bytesRead
         })
-        .returning()
 
-      const chunk = result[0]
+        const audioBuffer = await audio.toBuffer()
+        const audioAsBase64 = audioBuffer.toString('base64')
 
-      if (!chunk) {
-        throw new Error('Error saving audio chunk')
+        console.log('Transcribing audio...')
+        const transcription = await transcribeAudio(audioAsBase64, audio.mimetype)
+        console.log('Transcription completed:', transcription)
+
+        console.log('Generating embeddings...')
+        const embeddings = await generateEmbeddings(transcription)
+        console.log('Embeddings generated successfully')
+
+        const result = await db
+          .insert(schema.audioChunks)
+          .values({
+            roomId,
+            transcription,
+            embeddings,
+          })
+          .returning()
+
+        const chunk = result[0]
+
+        if (!chunk) {
+          return reply.status(500).send({ error: 'Error saving audio chunk' })
+        }
+
+        console.log('Audio chunk saved successfully:', chunk.id)
+        return reply.status(201).send({ 
+          chunkId: chunk.id,
+          transcription: chunk.transcription
+        })
+      } catch (error) {
+        console.error('Error processing audio:', error)
+        return reply.status(500).send({ 
+          error: 'Failed to process audio',
+          details: error instanceof Error ? error.message : 'Unknown error'
+        })
       }
-
-      return reply.status(201).send({ chunkId: chunk.id })
     }
   )
 }

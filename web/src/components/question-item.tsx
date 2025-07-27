@@ -27,13 +27,14 @@ export function QuestionItem({ question }: QuestionItemProps) {
               </div>
             </div>
             <div className="flex-1">
-              <p className="mb-1 font-medium text-foreground">Pergunta</p>
+              <p className="mb-1 font-medium text-foreground">Question</p>
               <p className="whitespace-pre-line text-muted-foreground text-sm leading-relaxed">
                 {question.question}
               </p>
             </div>
           </div>
 
+          {/* Answer or Loading */}
           {(!!question.answer || question.isGeneratingAnswer) && (
             <div className="flex items-start space-x-3">
               <div className="flex-shrink-0">
@@ -50,51 +51,72 @@ export function QuestionItem({ question }: QuestionItemProps) {
                     <div className="flex items-center space-x-2">
                       <Loader2 className="size-4 animate-spin text-primary" />
                       <span className="text-primary text-sm italic">
-                        Gerando resposta...
+                        Generating response...
                       </span>
                     </div>
                   ) : (
                     <div className="space-y-4 text-sm leading-relaxed">
-                      {question.answer?.split('\n\n').map((section, index) => {
-                        if (section.startsWith('RESPOSTA:')) {
-                          return (
-                            <div key={index} className="text-foreground">
-                              <p className="font-medium mb-2">Resposta:</p>
-                              <p className="whitespace-pre-line">
-                                {section.replace('RESPOSTA:', '').trim()}
-                              </p>
-                            </div>
-                          )
-                        }
+                      {question.answer ? (
+                        question.answer.split('\n\n').map((section, index) => {
+                          if (section.startsWith('ANSWER:')) {
+                            return (
+                              <div key={index} className="text-foreground">
+                                <p className="font-medium mb-2">Answer:</p>
+                                <p className="whitespace-pre-line">
+                                  {section.replace('ANSWER:', '').trim()}
+                                </p>
+                              </div>
+                            )
+                          }
 
-                        if (section.startsWith('TRECHOS RELEVANTES:')) {
-                          return (
-                            <div key={index} className="text-muted-foreground bg-muted/30 p-3 rounded-md">
-                              <p className="font-medium mb-2">Trechos Relevantes:</p>
-                              <p className="whitespace-pre-line italic">
-                                {section.replace('TRECHOS RELEVANTES:', '').trim()}
-                              </p>
-                            </div>
-                          )
-                        }
+                          if (section.startsWith('RELEVANT EXCERPTS:')) {
+                            return (
+                              <div
+                                key={index}
+                                className="text-muted-foreground bg-muted/30 p-3 rounded-md"
+                              >
+                                <p className="font-medium mb-2">
+                                  Relevant Excerpt:
+                                </p>
+                                <p className="whitespace-pre-line italic">
+                                  {section.replace(
+                                    'RELEVANT EXCERPTS:',
+                                    ''
+                                  ).trim()}
+                                </p>
+                              </div>
+                            )
+                          }
 
-                        if (section.startsWith('OBSERVAÇÕES ADICIONAIS:')) {
-                          return (
-                            <div key={index} className="text-muted-foreground text-xs">
-                              <p className="font-medium mb-1">Observações:</p>
-                              <p className="whitespace-pre-line">
-                                {section.replace('OBSERVAÇÕES ADICIONAIS:', '').trim()}
-                              </p>
-                            </div>
-                          )
-                        }
+                          if (section.startsWith('ADDITIONAL OBSERVATIONS:')) {
+                            return (
+                              <div
+                                key={index}
+                                className="text-muted-foreground text-xs"
+                              >
+                                <p className="font-medium mb-1">
+                                  Observations:
+                                </p>
+                                <p className="whitespace-pre-line">
+                                  {section
+                                    .replace('ADDITIONAL OBSERVATIONS:', '')
+                                    .trim()}
+                                </p>
+                              </div>
+                            )
+                          }
 
-                        return (
-                          <p key={index} className="whitespace-pre-line">
-                            {section}
-                          </p>
-                        )
-                      })}
+                          return (
+                            <p key={index} className="whitespace-pre-line">
+                              {section}
+                            </p>
+                          )
+                        })
+                      ) : (
+                        <p className="italic text-sm text-muted-foreground">
+                          Nenhuma resposta encontrada.
+                        </p>
+                      )}
                     </div>
                   )}
                 </div>
@@ -102,6 +124,7 @@ export function QuestionItem({ question }: QuestionItemProps) {
             </div>
           )}
 
+          {/* Timestamp */}
           <div className="flex justify-end">
             <span className="text-muted-foreground text-xs">
               {dayjs(question.createdAt).toNow()}

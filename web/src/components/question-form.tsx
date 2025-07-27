@@ -20,13 +20,17 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { useCreateQuestion } from '@/http/use-create-question'
 
-// Esquema de validação no mesmo arquivo conforme solicitado
+// Validation schema
 const createQuestionSchema = z.object({
   question: z
     .string()
-    .min(1, 'Pergunta é obrigatória')
-    .min(10, 'Pergunta deve ter pelo menos 10 caracteres')
-    .max(500, 'Pergunta deve ter menos de 500 caracteres'),
+    .min(1, 'Question is required')
+    .min(10, 'Question must be at least 10 characters')
+    .max(500, 'Question must be less than 500 characters'),
+  context: z
+    .string()
+    .optional()
+    .transform(val => val === '' ? undefined : val)
 })
 
 type CreateQuestionFormData = z.infer<typeof createQuestionSchema>
@@ -42,11 +46,13 @@ export function QuestionForm({ roomId }: QuestionFormProps) {
     resolver: zodResolver(createQuestionSchema),
     defaultValues: {
       question: '',
+      context: '',
     },
   })
 
   async function handleCreateQuestion(data: CreateQuestionFormData) {
     await createQuestion(data)
+    form.reset() // Reset form after successful submission
   }
 
   const { isSubmitting } = form.formState
@@ -54,9 +60,9 @@ export function QuestionForm({ roomId }: QuestionFormProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Fazer uma Pergunta</CardTitle>
+        <CardTitle>Ask a Question</CardTitle>
         <CardDescription>
-          Digite sua pergunta abaixo para receber uma resposta gerada por I.A.
+          Enter your question below to receive an AI-generated answer.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -70,12 +76,31 @@ export function QuestionForm({ roomId }: QuestionFormProps) {
               name="question"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Sua Pergunta</FormLabel>
+                  <FormLabel>Your Question</FormLabel>
                   <FormControl>
                     <Textarea
                       className="min-h-[100px]"
                       disabled={isSubmitting}
-                      placeholder="O que você gostaria de saber?"
+                      placeholder="What would you like to know?"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="context"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Additional Context (Optional)</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      className="min-h-[80px]"
+                      disabled={isSubmitting}
+                      placeholder="Provide any additional context or specific information to help answer your question..."
                       {...field}
                     />
                   </FormControl>
@@ -85,7 +110,7 @@ export function QuestionForm({ roomId }: QuestionFormProps) {
             />
 
             <Button disabled={isSubmitting} type="submit">
-              Enviar pergunta
+              {isSubmitting ? 'Sending...' : 'Send'}
             </Button>
           </form>
         </Form>

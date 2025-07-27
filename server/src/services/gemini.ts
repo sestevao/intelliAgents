@@ -5,7 +5,8 @@ const gemini = new GoogleGenAI({
   apiKey: env.GEMINI_API_KEY,
 })
 
-const model = 'gemini-pro'
+// const model = 'gemini-pro'
+const model = 'models/gemini-1.5-pro'
 
 export async function transcribeAudio(audioAsBase64: string, mimeType: string) {
   const response = await gemini.models.generateContent({
@@ -51,45 +52,68 @@ export async function generateAnswer(
   transcriptions: string[]
 ) {
   const context = transcriptions.join('\n\n')
+  console.log('Context:', context)
+
+  let prompt: string
+
+  if (transcriptions.length === 0 || context.trim() === '') {
+    // If no context is provided, use general knowledge
+    prompt = `
+      You are an educational assistant. Answer the following question clearly and precisely in Brazilian Portuguese.
+      Use your general knowledge to provide a helpful and informative response.
+
+      STUDENT QUESTION:
+      ${question}
+
+      IMPORTANT INSTRUCTIONS:
+      1. Provide a clear, direct, and helpful answer.
+      2. Use Brazilian Portuguese.
+      3. Keep your response educational and professional.
+      4. Structure your response clearly.
+      5. If the question is unclear or too broad, ask for clarification.
+    `.trim()
+  } else {
+    // If context is provided, use it for the answer
+    prompt = `
+      You are an educational assistant specializing in analyzing lesson content and answering questions.
+      Using the text provided below as context, answer the question clearly and precisely in Brazilian Portuguese.
+
+      CLASS CONTEXT:
+      ${context}
+
+      STUDENT QUESTION:
+      ${question}
+
+      IMPORTANT INSTRUCTIONS:
+      1. Carefully analyze the context and the question.
+      2. Use EXCLUSIVELY information contained in the context provided.
+      3. If the information is not explicit in the context, respond: "Based on the available lecture content, there is insufficient information to answer this question."
+      4. When citing information from the context, always use the term "lecture content."
+      5. Structure your response in the following format:
+
+        ANSWER:
+        [Your main answer here, objective and direct]
+
+        RELEVANT EXCERPTS:
+        [If applicable, cite specific excerpts from the lesson content that support your answer]
+
+        ADDITIONAL NOTES:
+        [If necessary, include notes about important limitations or clarifications]
+
+      6. Keep your answers:
+        - Objective and direct
+        - In clear, professional language
+        - Well-structured and easy to understand
+        - With relevant context quotes when appropriate
+
+      7. Avoid:
+        - Adding extraneous information to the context
+        - Making assumptions beyond the provided content
+        - Using complex or unnecessary technical language
+    `.trim()
+  }
+
   console.log('Prompt sent to Gemini:', prompt)
-
-  const prompt = `
-    You are an educational assistant specializing in analyzing lesson content and answering questions.
-    Using the text provided below as context, answer the question clearly and precisely in Brazilian Portuguese.
-
-    CLASS CONTEXT:
-    ${context}
-
-    STUDENT QUESTION:
-    ${question}
-
-    IMPORTANT INSTRUCTIONS:
-    1. Carefully analyze the context and the question.
-    2. Use EXCLUSIVELY information contained in the context provided.
-    3. If the information is not explicit in the context, respond: "Based on the available lecture content, there is insufficient information to answer this question."
-    4. When citing information from the context, always use the term "lecture content."
-    5. Structure your response in the following format:
-
-      ANSWER:
-      [Your main answer here, objective and direct]
-
-      RELEVANT EXCERPTS:
-      [If applicable, cite specific excerpts from the lesson content that support your answer]
-
-      ADDITIONAL NOTES:
-      [If necessary, include notes about important limitations or clarifications]
-
-    6. Keep your answers:
-      - Objective and direct
-      - In clear, professional language
-      - Well-structured and easy to understand
-      - With relevant context quotes when appropriate
-
-    7. Avoid:
-      - Adding extraneous information to the context
-      - Making assumptions beyond the provided content
-      - Using complex or unnecessary technical language
-  `.trim()
 
   // Maximum retries for API calls
   const MAX_RETRIES = 3;

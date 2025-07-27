@@ -1,3 +1,4 @@
 export type CreateQuestionRequest = {
-	question: string
-  }
+  question: string
+  context?: string
+}

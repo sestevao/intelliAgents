@@ -13,6 +13,7 @@ import {
 
 export function RoomList() {
   const { data, isLoading } = useRooms()
+  console.log('rooms data:', data)
 
   return (
     <Card>
@@ -27,8 +28,10 @@ export function RoomList() {
           <p className="text-muted-foreground text-sm">Carregando salas...</p>
         )}
 
-        {data?.map((room) => {
-          return (
+        {Array.isArray(data) && data.length === 0 && <p>Não há salas criadas.</p>}
+
+        {Array.isArray(data) ? (
+          data.map((room) => (
             <Link
               className="flex items-center justify-between rounded-lg border p-3 hover:bg-accent/50"
               key={room.id}
@@ -52,8 +55,10 @@ export function RoomList() {
                 <ArrowRight className="size-3" />
               </span>
             </Link>
-          )
-        })}
+          ))
+        ) : (
+          <p className="text-red-500 bg-red-200 p-1 rounded-lg text-sm">Erro ao carregar salas.</p>
+        )}
       </CardContent>
     </Card>
   )

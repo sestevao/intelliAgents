@@ -3,11 +3,16 @@ import type { CreateQuestionRequest } from './types/create-question-request'
 import type { CreateQuestionResponse } from './types/create-question-response'
 import type { GetRoomQuestionsResponse } from './types/get-room-questions-response'
 
+interface CreateQuestionData {
+  question: string
+  context?: string
+}
+
 export function useCreateQuestion(roomId: string) {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (data: CreateQuestionRequest) => {
+    mutationFn: async (data: CreateQuestionData) => {
       const response = await fetch(
         `http://localhost:3333/rooms/${roomId}/questions`,
         {
